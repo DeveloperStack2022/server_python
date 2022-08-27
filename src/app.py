@@ -21,6 +21,11 @@ FlaskUUID(app)
 #settings 
 CORS(app)
 
+import cloudinary
+import cloudinary.uploader
+
+cloudinary.config(cloud_name='dumupynvl',api_key= '863551484848776',api_secret = 'vb6eG07cim2AOxILxbIiHGA0IFo')
+
 app.register_blueprint(user_admin,url_prefix="/api")
 app.register_blueprint(auth,url_prefix="/api")
 # Create Role POST 

@@ -1,4 +1,5 @@
 
+from sre_constants import SUCCESS
 from flask import Blueprint, request,jsonify
 import bcrypt
 from functions_jwt import validate_token
@@ -8,9 +9,18 @@ import json
 from bson import json_util
 import base64
 from bson.objectid import ObjectId
-
+import urllib.request
+from app import cloudinary
+# from ConfiCloud import Cloud
 
 print(__name__)
+
+
+
+
+
+
+
 
 # @user_admin.before_request
 # def verify_token_middleware():
@@ -20,19 +30,31 @@ print(__name__)
 @user_admin.route('/createUser',methods=['POST'])
 def createUser():
     #reciving datap
-    username = request.json['username']
-    nombre =  request.json['nombre']
-    apellido =  request.json['apellido']
-    password = request.json['password']
-    dni =  request.json['numCedula']
-    # rol = request.json['rol_id']
-    rol = request.json['rol']
-    
+    username = request.form['username']
+    nombre =  request.form['nombre']
+    apellido =  request.form['apellido']
+    password = request.form['password']
+    dni =  request.form['numCedula']
+    # rol = request.form['rol_id']
+    rol = request.form['rol']
+
+    # image = request.form.get('image_perfil')
+
+    if 'image_perfil' not in request.files:
+        resp = jsonify({'message' : 'No file part in the request'})
+        resp.status_code = 400
+        return resp
+    image = request.files['image_perfil']
+    print(image)
+    response = cloudinary.uploader.upload(image)
+    print(response['secure_url'])
+    img_url = response['secure_url']
+    # print(request.form.get('numCedula'))
     # -------- END DATA ------------- # 
     if username and nombre and password and apellido and dni and rol :
         idRol = mydb.db.role.find_one({"name_role":rol})
-        hashed_password = bcrypt.hashpw(request.json['password'].encode('utf-8'),bcrypt.gensalt(10))
-        id = mydb.users.insert_one({'username':username,'_id':str(dni),'password':hashed_password,'apellido':apellido,'nombre':nombre,'rol_id':idRol["_id"]}).inserted_id
+        hashed_password = bcrypt.hashpw(request.form['password'].encode('utf-8'),bcrypt.gensalt(10))
+        id = mydb.users.insert_one({'username':username,'_id':str(dni),'password':hashed_password,'apellido':apellido,'nombre':nombre,'rol_id':idRol["_id"],'img_url':img_url}).inserted_id
         
         response = jsonify({
             '_id': str(id),
@@ -40,12 +62,16 @@ def createUser():
             'apellido':apellido,
             'username':username,
             'numCedula':dni,
-            'rol':idRol['name_role']
+            'rol':idRol['name_role'],
         })
         response.status_code = 201
         return response
+        return {
+            "ok":"ok"
+        }
     else:
         return not_found()
+    return {"ok":"ok"}
 
 """ GET Users """
 @user_admin.route('/getUsers', methods=["GET"])
@@ -79,8 +105,9 @@ def getDocentes():
 def deleteUser():
     username = request.json['username']
     datos = mydb.users.find_one({"username": username})
-    if datos: 
-        mydb.users.delete_one({"username": username})
+    if datos:
+        user = mydb.users.delete_one({"username": username})
+       
         response = jsonify({
             "ok":"ok",
             "username":datos['username']
@@ -342,3 +369,99 @@ def deleteParalelo(id):
     return {
         "ok":"ok"
     }
+
+# Notes 
+
+@user_admin.route('/createNotaStudent',methods=["POST"])
+def createNoteStudent():
+    json = request.json
+    id = json['id_student']
+    fallos = json['fallos']
+    nota = 0;
+    if(fallos == 0):
+        nota = 100;
+    if(fallos == 1 ):
+        nota = 80;
+    if(fallos == 2):
+        nota = 60;
+    if(fallos == 3):
+        nota = 40;
+    if(fallos == 4):
+        nota = 20;
+    if(fallos == 5):
+        nota = 0;
+    mydb.notas.insert_one({"id_student":id,"calificacion":nota,"fallos": fallos})
+
+    return {
+        "ok":"ok"
+    }
+
+
+
+@user_admin.route('/createScore',methods=["POST"])
+def createScore():
+
+    json = request.json
+    id = json['id_student']
+    score = json['score']
+
+    mydb.scores.insert_one({"id_student":id,"score":score})
+
+    return {
+        "ok":"success"
+    }
+
+# 
+@user_admin.route('/createNoteAdmin',methods=["POST"])
+def createNoteAdmin():
+    json = request.json
+
+    id_ciclo = json['id_ciclo']
+    nota_inicial = json['nota_inicial']
+    nota_final = json['nota_final']
+    paralelo = json['paralelo']
+    estado = json['estado']
+
+    doc = mydb.notasAdmin.find({"id_ciclo":id_ciclo})
+    for row in doc:
+        if row['paralelo'] == paralelo and row['estado'] == estado:
+            res = jsonify({
+                "message":"nota ya existe"
+            })
+            res.status = 400;
+            return res;
+        if row['paralelo'] == paralelo and row['estado'] != estado:
+            if estado:
+                mydb.notasAdmin.update_one({"id_ciclo":id_ciclo,"paralelo":paralelo},{"$set":{"estado":True}})
+                res = jsonify({
+                    "message":"nota modificada a true"
+                })
+                res.status = 200;
+                return res;
+            else:    
+                mydb.notasAdmin.update_one({"id_ciclo":id_ciclo,"paralelo":paralelo},{"$set":{"estado":False}})
+                res = jsonify({
+                    "message":"nota modificada a false"
+                })
+                res.status = 200;
+                return res;
+    mydb.notasAdmin.insert_one({"id_ciclo":id_ciclo,"nota_inicial":nota_inicial,"nota_final":nota_final,"paralelo":paralelo,"estado":estado})
+    return {"ok":"ok"}
+
+
+@user_admin.route('/getNotesAdmin')
+def getNotesAdmin():
+    notas = [dict(row ) for row in mydb.notasAdmin.find()]
+    return json.dumps(notas,default=json_util.default)
+
+
+@user_admin.route('/deleteNotes/<id>',methods=["DELETE"])
+def deleteNotes(id):
+    _id = id
+
+    mydb.notasAdmin.delete_one({"_id",ObjectId(_id)})
+
+    return {
+        "ok":"ok"
+    }
+       

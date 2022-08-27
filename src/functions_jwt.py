@@ -11,8 +11,8 @@ def expires_date(days:int):
 
 # Create Token
 def write_token(data:dict):
-    token = encode(payload={**data,'exp':expires_date(2)},key='secret',algorithms=["HS256"])
-    return token.encode("UTF-8")
+    token = encode(payload={**data,'exp':expires_date(2)},key='secret',algorithm="HS256")
+    return token;
 
 # Valid / Verifytoken
 def validate_token(token,output=False):
