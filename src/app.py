@@ -32,7 +32,7 @@ app.register_blueprint(auth,url_prefix="/api")
 @app.route('/createRole',methods=['POST'])
 def createRole():
     name_role = request.json['name_role']
-
+    
     if name_role : 
         # roleCollection = mydb['role']
         id_role = mydb.db.role.insert_one({"_id":str(uuid.uuid4()),"name_role":name_role}).inserted_id

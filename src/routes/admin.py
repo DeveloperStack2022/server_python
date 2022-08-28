@@ -105,6 +105,8 @@ def getDocentes():
 def deleteUser():
     username = request.json['username']
     datos = mydb.users.find_one({"username": username})
+    # {'_id'}
+    # nono
     if datos:
         user = mydb.users.delete_one({"username": username})
        
@@ -115,6 +117,12 @@ def deleteUser():
         response.status_code = 200
         return  response
 
+    result =  jsonify({
+        "message":"not found document by username"
+    })
+    result.status = 400 #Cliente esta haciendo incorreacta 
+    
+    return result
 
 
 
@@ -161,7 +169,11 @@ def getMaterias():
 @user_admin.route('/deleteMateria',methods=['DELETE'])
 def deleteMateria():
     args = request.args
-    id_materia = args.get('id_materia')
+
+    # http://localhost:5000/api/deleteMateria?id_materia=123&name=luis
+    # name = request.args.get('name') # "luis"
+    id_materia = args.get('id_materia') # "mi trabajo"
+
     mydb.materia.delete_one({'_id': ObjectId(id_materia)})
     return {
         "ok":"ok"
@@ -169,7 +181,7 @@ def deleteMateria():
 
 @user_admin.route('/updateMateria/<id>',methods=["PUT"])
 def updateMateria(id):
-
+    # http://localhost:5000/updateMateria/21546546478
     _id = id
     print(request.json)
     descripcion = request.json['descripcion']
@@ -215,6 +227,7 @@ def createCicloAcademico():
     orden = json['orden']
     cicloAcademico = mydb.ciclo_academico.find();
     cicloAca = [dict(row) for row in cicloAcademico]
+    # [{"_id":"adsasd"},{{"_id":"asdasdasd"}}]
     print(cicloAca)
     if not cicloAca: 
         mydb.ciclo_academico.insert_one({"descripcion":descripcion,"orden":orden,"estado":True})
@@ -231,6 +244,7 @@ def getCicloAcademico():
     ciclos = [ dict(row) for row in ciclo_academico ]
     return json.dumps(ciclos,default=json_util.default)
 
+
 @user_admin.route('/updateCicloAcademico/<id>',methods=["PUT"])
 def updateCicloAcademico(id):
     _id = id
@@ -246,8 +260,10 @@ def updateCicloAcademico(id):
 @user_admin.route('/updateEstadoClicloAcademico/<id>',methods=["PUT"])
 def updateStateCicloAcademico(id):
     _id  = id
+
+
     idQuery = mydb.ciclo_academico.find_one({"_id":ObjectId(_id)})
-    if idQuery['estado']: 
+    if idQuery['estado']:  # False | True 
         mydb.ciclo_academico.update_one({"_id":ObjectId(_id['$oid']) if "$oid" in _id else ObjectId(_id)}, {"$set":{"estado":False}})
         # querySizes = mydb.ciclo_academico.find({"estado":True})
     else:
@@ -423,13 +439,22 @@ def createNoteAdmin():
     estado = json['estado']
 
     doc = mydb.notasAdmin.find({"id_ciclo":id_ciclo})
+    # 0 , 1 , 2
+    # ['adsa','asdasd']
+    # [{"_id":"asdasda","paralelo":"A","estado":True},{"_id:":"adsasda",parasdas}]
     for row in doc:
+        # verdadero and  falso => falso
+        # verdadero and verdadero and verdadero  => verdadero
+
+        # 
+        # A == A and true === false 
         if row['paralelo'] == paralelo and row['estado'] == estado:
             res = jsonify({
                 "message":"nota ya existe"
             })
             res.status = 400;
             return res;
+        #   A                   A  true      and True !=  False
         if row['paralelo'] == paralelo and row['estado'] != estado:
             if estado:
                 mydb.notasAdmin.update_one({"id_ciclo":id_ciclo,"paralelo":paralelo},{"$set":{"estado":True}})
@@ -458,10 +483,12 @@ def getNotesAdmin():
 @user_admin.route('/deleteNotes/<id>',methods=["DELETE"])
 def deleteNotes(id):
     _id = id
-
     mydb.notasAdmin.delete_one({"_id",ObjectId(_id)})
-
     return {
         "ok":"ok"
     }
+
+# http://localhost:5000/deleteNotes/121321212312
+
+
        
