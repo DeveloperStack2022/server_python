@@ -301,9 +301,9 @@ def CreateNota():
 
 @user_admin.route('/getNotas',methods=['GET'])
 def GetNotas():
-    notas_get = mydb.nota.find()
+    notas_get = mydb.notas.find()
     notas = [ dict(row) for row in notas_get ]
-    return json.dumps(notas,default=json.util.default)
+    return json.dumps(notas,default=json_util.default)
 
 
 #  
@@ -514,7 +514,7 @@ def userGetParalelos():
         return response;
     
     ciclo = mydb.ciclo_academico.find_one({"estado":True})
-    paraleloQuery = mydb.AssingParalelo.find_one({"id_ciclo":str(ciclo["_id"])});
+    paraleloQuery = mydb.AssingParalelo.find_one({"id_ciclo":str(ciclo["_id"]),"paralelo":str(paralelo)});
  
     
 
