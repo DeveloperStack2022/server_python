@@ -1,5 +1,6 @@
 
 from sre_constants import SUCCESS
+from unicodedata import category
 from flask import Blueprint, request,jsonify
 import bcrypt
 from functions_jwt import validate_token
@@ -315,7 +316,17 @@ def AssignParalelo():
     materia = json['id_materia']
     paralelo = json['paralelo']
     users = json['user']
-    
+    print(users)
+    queryCiclo = mydb.AssingParalelo.find_one({"id_ciclo":str(id_ciclo),"paralelo":str(paralelo)})
+    if queryCiclo:
+        if str(queryCiclo['paralelo']) == str(paralelo):
+            mydb.AssingParalelo.update_one({"id_ciclo":str(id_ciclo)},{"$push":{"students":{"$each":users}}})
+            response = jsonify({
+                "ok":"ok",
+            })
+            response.status = 201;
+            return response;
+
     mydb.AssingParalelo.insert_one({"id_ciclo":id_ciclo,"id_docente":docente,"id_materia":materia,"paralelo":paralelo,"students":users})
 
     response = jsonify({
@@ -490,5 +501,63 @@ def deleteNotes(id):
 
 # http://localhost:5000/deleteNotes/121321212312
 
+#Get Users Paralelos
 
+@user_admin.route('/getUsersParalelos')
+def userGetParalelos(): 
+    args = request.args
+    paralelo = args.get('paralelo')
+    
+    if not paralelo:
+        response = jsonify(message="paralelo no encontrado",category="error",status=400)
+        response.status = 400;
+        return response;
+    
+    ciclo = mydb.ciclo_academico.find_one({"estado":True})
+    paraleloQuery = mydb.AssingParalelo.find_one({"id_ciclo":str(ciclo["_id"])});
+ 
+    
+
+    if not paraleloQuery:
+        response = jsonify(message="paralelo asignado al ciclo no se encuentra",category="error",status=400)
+        response.status = 400;
+        return response;
+
+  
+
+    datos = []
+    # print(paraleloQuery["id_ciclo"])
+    # print(ciclo["_id"])
+    if str(paraleloQuery["id_ciclo"])  == str(ciclo["_id"]):
        
+        for user in paraleloQuery['students']:
+            userFound = mydb.users.find_one({"_id":user})
+            datos.append(userFound)
+            print(userFound)
+        
+        response =  json.dumps(datos,default=json_util.default)
+        return response
+        
+
+     # paraleloArray = [dict(row) for row in paralelo]
+
+    
+
+    
+    
+    
+    
+
+   
+   
+
+    # for rowArray in paraleloArray:
+        # print("\n",rowArray)
+        # print([dict(roww) for roww in user])
+        # for rowArr in rowArray['students']:
+
+    # response =  json.dumps(datos,default=json_util.default)
+    # return response;
+    return {"ok":True}
+       
+
